@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang = "en">
+<head>
+    <title>Railway Congestion Checker</title>
+</head>
+
+<body>
+
+<h1>Railway Station Congestion System</h1>
+
+Enter PNR Number:
+<label for="pnr"></label>
+<input type="text" id="pnr">
+
+<button onclick="checkStatus()">Check Status</button>
+
+<p id="result"></p>
+
+
+
+
+    <script>
+
+        function checkStatus(){
+
+            let pnr = document.getElementById("pnr").value;
+
+            fetch("http://localhost:8080/pnr/" + pnr)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById("result").innerHTML =
+                "Congestion Level: " + data;
+            })
+            .catch(error => {
+                document.getElementById("result").innerHTML =
+                "Server error";
+            });
+
+        }
+
+</script>
+
+
+
+</body>
+</html>
