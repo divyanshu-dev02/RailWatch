@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  # =========================================================================
+  # 1. MySQL 8.0 Database Service with Healthcheck and Auto-Seed
+  # =========================================================================
+  db:
+    image: mysql:8.0
+    container_name: railwatch-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: railway_congestion
+      MYSQL_USER: railuser
+      MYSQL_PASSWORD: railpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./railway_congestion.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "railuser", "-prailpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+    networks:
+      - railwatch-network
+
+  # =========================================================================
+  # 2. Spring Boot 3.x Predictive Congestion API Service
+  # =========================================================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: railwatch-backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://db:3306/railway_congestion?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: railuser
+      SPRING_DATASOURCE_PASSWORD: railpassword
+      PORT: 8084
+    ports:
+      - "8084:8084"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - railwatch-network
+
+  # =========================================================================
+  # 3. React Vite + Tailwind SPA Frontend Service
+  # =========================================================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: railwatch-frontend
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - railwatch-network
+
+networks:
+  railwatch-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

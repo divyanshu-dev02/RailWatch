@@ -1,0 +1,21 @@
+services:
+  # =========================================================================
+  # Render Web Service for Spring Boot API Backend
+  # =========================================================================
+  - type: web
+    name: railwatch-api
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    envVars:
+      - key: PORT
+        value: 8084
+      - key: SPRING_DATASOURCE_URL
+        sync: false # Set from Aiven Cloud MySQL connection URI
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: JAVA_OPTS
+        value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
