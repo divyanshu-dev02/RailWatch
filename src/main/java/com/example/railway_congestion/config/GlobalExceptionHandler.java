@@ -1,0 +1,14 @@
+package com.example.railway_congestion.config;
+
+import com.example.railway_congestion.dto.ApiError;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiError> handleUnexpected(Exception exception) {
+        return ResponseEntity.internalServerError().body(ApiError.of("INTERNAL_ERROR", "Something went wrong.", 500));
+    }
+}

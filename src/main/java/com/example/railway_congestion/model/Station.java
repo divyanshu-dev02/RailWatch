@@ -1,41 +1,24 @@
 package com.example.railway_congestion.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-    @Entity
-    @Table(name = "station")
-    public class Station {
+@Entity
+@Table(name = "station")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Station {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private int station_id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "station_id")
+    private int stationId;
 
-        private String station_name;
+    @Column(name = "station_name")
+    private String stationName;
 
-        private String city;
-
-        public int getStation_id() {
-            return station_id;
-        }
-
-        public void setStation_id(int station_id) {
-            this.station_id = station_id;
-        }
-
-        public String getStation_name() {
-            return station_name;
-        }
-
-        public void setStation_name(String station_name) {
-            this.station_name = station_name;
-        }
-
-        public String getCity() {
-            return city;
-        }
-
-        public void setCity(String city) {
-            this.city = city;
-        }
-    }
-
+    private String city;
+}

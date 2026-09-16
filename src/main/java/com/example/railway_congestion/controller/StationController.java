@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/stations")
+@CrossOrigin
 public class StationController {
 
     private final StationRepository stationRepository;
@@ -16,14 +16,8 @@ public class StationController {
         this.stationRepository = stationRepository;
     }
 
-    @GetMapping
+    @GetMapping({"/stations", "/api/stations"})
     public List<Station> getAllStations() {
         return stationRepository.findAll();
-    }
-
-    @GetMapping("/{id}/congestion")
-    public String getStationCongestion(@PathVariable int id) {
-        return "Station congestion for id: " + id;
-
     }
 }

@@ -1,11 +1,16 @@
 package com.example.railway_congestion.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
-
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "train")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Train {
 
     @Id
@@ -24,11 +29,8 @@ public class Train {
 
     private int platform;
 
-    public int getTrainId() {
-        return trainId;
-    }
-
-    public int getStationId() {
-        return stationId;
-    }
+    @ManyToOne
+    @JoinColumn(name = "station_id", insertable = false, updatable = false)
+    @JsonIgnore
+    private Station station;
 }
