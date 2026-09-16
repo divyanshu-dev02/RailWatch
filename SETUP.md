@@ -25,8 +25,8 @@ Welcome to the **RailWatch** setup guide! This document explains how to set up, 
    *(File: `src/main/resources/application.properties`)*
    ```properties
    spring.datasource.url=jdbc:mysql://localhost:3306/railway_congestion
-   spring.datasource.username=root
-   spring.datasource.password=Manish1234
+   spring.datasource.username=your_mysql_username
+   spring.datasource.password=your_mysql_password
    ```
    *Update `username` and `password` if yours are different!*
 
