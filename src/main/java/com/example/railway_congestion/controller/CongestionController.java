@@ -12,6 +12,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import org.springframework.validation.annotation.Validated;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -19,7 +23,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin
+@Validated
 public class CongestionController {
     private final CongestionService service;
     private final TrainRepository trainRepository;
@@ -30,30 +34,33 @@ public class CongestionController {
     }
 
     @GetMapping("/pnr/{pnr}")
-    public ResponseEntity<?> getStatusByPnr(@PathVariable String pnr) {
+    public ResponseEntity<?> getStatusByPnr(
+            @PathVariable @Size(min = 1, max = 20) @Pattern(regexp = "[A-Za-z0-9]+") String pnr) {
         CongestionResponse response = service.getStatusByPnr(pnr.trim());
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<?> dashboard(@RequestParam(defaultValue = "2026-04-27") String date) {
+    public ResponseEntity<?> dashboard(@RequestParam(defaultValue = "2026-04-27")
+                                       @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}") String date) {
         if (!validDate(date)) return ResponseEntity.badRequest().body(ApiError.of("INVALID_DATE", "Use YYYY-MM-DD format.", 400));
         return ResponseEntity.ok(service.getDashboard(date));
     }
 
     @GetMapping("/stations/{stationId}/congestion")
-    public ResponseEntity<?> stationCongestion(@PathVariable int stationId,
-                                                @RequestParam String date) {
+    public ResponseEntity<?> stationCongestion(@PathVariable @Positive int stationId,
+                                                @RequestParam @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}") String date) {
         if (!validDate(date)) return ResponseEntity.badRequest().body(ApiError.of("INVALID_DATE", "Use YYYY-MM-DD format.", 400));
         StationSnapshot response = service.getStationCongestion(stationId, date);
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }
 
     @GetMapping("/stations/{stationId}/history")
-    public ResponseEntity<?> stationHistory(@PathVariable int stationId,
-                                            @RequestParam String from,
-                                            @RequestParam String to) {
+    public ResponseEntity<?> stationHistory(@PathVariable @Positive int stationId,
+                                            @RequestParam @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}") String from,
+                                            @RequestParam @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}") String to) {
         if (!validDate(from) || !validDate(to)) return ResponseEntity.badRequest().body(ApiError.of("INVALID_DATE", "Use YYYY-MM-DD format.", 400));
+        if (from.compareTo(to) > 0) return ResponseEntity.badRequest().body(ApiError.of("INVALID_DATE_RANGE", "'from' must not be after 'to'.", 400));
         List<TrendPoint> response = service.getStationHistory(stationId, from, to);
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }

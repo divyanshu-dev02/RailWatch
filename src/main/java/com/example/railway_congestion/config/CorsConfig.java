@@ -19,10 +19,20 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(Arrays.stream(allowedOrigins.split(",")).map(String::trim).toArray(String[]::new))
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
-                        .allowCredentials(true);
+                        .allowedOrigins(Arrays.stream(allowedOrigins.split(","))
+                                .map(String::trim)
+                                .filter(origin -> !origin.isBlank())
+                                .peek(origin -> {
+                                    if ("*".equals(origin)) {
+                                        throw new IllegalStateException("Wildcard CORS origins are not allowed");
+                                    }
+                                })
+                                .toArray(String[]::new))
+                        .allowedMethods("GET", "OPTIONS")
+                        .allowedHeaders("Accept", "Content-Type", "X-Request-Id")
+                        .exposedHeaders("X-Request-Id")
+                        .allowCredentials(false)
+                        .maxAge(3600);
             }
         };
     }

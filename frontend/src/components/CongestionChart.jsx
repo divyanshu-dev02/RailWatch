@@ -4,8 +4,7 @@ const COLORS = { LOW: '#10b981', MEDIUM: '#f59e0b', HIGH: '#ef4444' };
 const getColor = (passengers) => passengers < 500 ? COLORS.LOW : passengers <= 1500 ? COLORS.MEDIUM : COLORS.HIGH;
 
 const CongestionChart = ({ chartData = [], trendData = [] }) => (
-  <div id="analytics" className="max-w-5xl mx-auto mt-8 animate-fade-in-up">
-    <div className="grid lg:grid-cols-2 gap-6">
+  <div className="chart-grid">
       <ChartCard title="Station ranking" subtitle="Current passenger volume">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
@@ -30,10 +29,9 @@ const CongestionChart = ({ chartData = [], trendData = [] }) => (
           </LineChart>
         </ResponsiveContainer> : <div className="h-full flex items-center justify-center text-gray-500 text-sm">No historical data for this range.</div>}
       </ChartCard>
-    </div>
   </div>
 );
 
-const ChartCard = ({ title, subtitle, children }) => <div className="glass-card p-6 sm:p-8"><div className="mb-5"><h3 className="text-lg font-bold text-white">📊 {title}</h3><p className="text-sm text-gray-400 mt-1">{subtitle}</p></div><div className="h-72">{children}</div></div>;
+const ChartCard = ({ title, subtitle, children }) => <article className="chart-card p-6 sm:p-8"><div className="mb-5"><h3 className="text-lg font-bold text-white">📊 {title}</h3><p className="text-sm text-gray-400 mt-1">{subtitle}</p></div><div className="h-72">{children}</div></article>;
 
 export default CongestionChart;
