@@ -30,6 +30,16 @@ Welcome to the **RailWatch** setup guide! This document explains how to set up, 
    ```
    *Update `username` and `password` if yours are different!*
 
+### Production-safe configuration
+
+The backend accepts database settings through environment variables rather than committed credentials:
+
+- `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD`
+- `CORS_ALLOWED_ORIGINS`: comma-separated exact frontend origins; wildcard (`*`) is rejected
+- `DEMO_ENABLED`: defaults to `false`; demo endpoints also require the Spring `demo` profile
+
+Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns an `X-Request-Id` correlation header, and unexpected server errors are logged server-side with a sanitized response.
+
 ---
 
 ## Step 2: Running the Spring Boot Backend ⚙️
