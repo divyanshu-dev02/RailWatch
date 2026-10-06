@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/api/demo")
 @Profile("demo")
@@ -18,5 +20,5 @@ public class DemoController {
     public DemoController(CongestionService service) { this.service = service; }
 
     @PostMapping("/tick")
-    public StationSnapshot tick() { return service.demoTick("2026-04-27"); }
+    public StationSnapshot tick() { return service.demoTick(LocalDate.now().toString()); }
 }
