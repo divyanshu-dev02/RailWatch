@@ -55,7 +55,8 @@ public class CongestionService {
         int medium = countLevel(snapshots, "MEDIUM");
         int high = countLevel(snapshots, "HIGH");
         LocalDate selected = LocalDate.parse(date);
-        List<TrendPoint> trend = reservationRepository.getPassengerTrend(selected.minusDays(6).toString(), selected.toString());
+        List<TrendPoint> trend = reservationRepository.getPassengerTrendForAllStations(
+                selected.minusDays(6).toString(), selected.toString());
         return new DashboardResponse(date, total, low, medium, high, snapshots, trend, Instant.now().toString());
     }
 
@@ -65,7 +66,7 @@ public class CongestionService {
 
     public List<TrendPoint> getStationHistory(int stationId, String from, String to) {
         if (stationRepository.findById(stationId).isEmpty()) return null;
-        return reservationRepository.getPassengerTrend(from, to);
+        return reservationRepository.getPassengerTrend(stationId, from, to);
     }
 
     public int totalPassengers(int stationId, String date) {

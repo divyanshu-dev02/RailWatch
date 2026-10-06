@@ -27,6 +27,14 @@ public interface ReservationRepository extends JpaRepository<Reservation, Intege
     @Query("SELECT new com.example.railway_congestion.dto.TrendPoint(r.journeyDate, SUM(r.reservedPassengers)) " +
            "FROM Reservation r WHERE r.journeyDate BETWEEN :fromDate AND :toDate " +
            "GROUP BY r.journeyDate ORDER BY r.journeyDate")
-    List<TrendPoint> getPassengerTrend(@Param("fromDate") String fromDate,
+    List<TrendPoint> getPassengerTrendForAllStations(@Param("fromDate") String fromDate,
+                                                     @Param("toDate") String toDate);
+
+    @Query("SELECT new com.example.railway_congestion.dto.TrendPoint(r.journeyDate, SUM(r.reservedPassengers)) " +
+           "FROM Reservation r WHERE r.train.stationId = :stationId " +
+           "AND r.journeyDate BETWEEN :fromDate AND :toDate " +
+           "GROUP BY r.journeyDate ORDER BY r.journeyDate")
+    List<TrendPoint> getPassengerTrend(@Param("stationId") int stationId,
+                                       @Param("fromDate") String fromDate,
                                        @Param("toDate") String toDate);
 }
