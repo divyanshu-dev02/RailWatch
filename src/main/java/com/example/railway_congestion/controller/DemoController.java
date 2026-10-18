@@ -1,0 +1,24 @@
+package com.example.railway_congestion.controller;
+
+import com.example.railway_congestion.dto.StationSnapshot;
+import com.example.railway_congestion.service.CongestionService;
+import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("/api/demo")
+@Profile("demo")
+@ConditionalOnProperty(name = "railwatch.demo.enabled", havingValue = "true")
+public class DemoController {
+    private final CongestionService service;
+
+    public DemoController(CongestionService service) { this.service = service; }
+
+    @PostMapping("/tick")
+    public StationSnapshot tick() { return service.demoTick(LocalDate.now().toString()); }
+}

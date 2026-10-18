@@ -1,0 +1,21 @@
+package com.example.railway_congestion.config;
+
+import com.example.railway_congestion.service.CongestionService;
+import org.springframework.context.annotation.Profile;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.LocalDate;
+
+@Component
+@Profile("demo")
+@ConditionalOnProperty(name = "railwatch.demo.enabled", havingValue = "true")
+public class DemoScheduler {
+    private final CongestionService service;
+
+    public DemoScheduler(CongestionService service) { this.service = service; }
+
+    @Scheduled(fixedRateString = "${railwatch.demo.interval-ms:15000}")
+    public void publishDemoUpdate() { service.demoTick(LocalDate.now().toString()); }
+}
