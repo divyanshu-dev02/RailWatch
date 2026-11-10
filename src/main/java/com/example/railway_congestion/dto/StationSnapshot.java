@@ -5,6 +5,8 @@ public record StationSnapshot(
         String stationName,
         String city,
         int totalPassengers,
+        Integer stationCapacity,
+        int utilizationPercent,
         String congestionLevel,
         String journeyDate,
         String eventTimestamp

@@ -54,6 +54,16 @@ Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns
 3. The backend server will start on port `8080`.
    - Verify it's running: `http://localhost:8080/stations` (should return JSON data).
 
+### Local development without MySQL
+
+If MySQL is not installed or running, use the H2 local profile:
+
+```bash
+bash mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+This uses an in-memory H2 database and loads 30 stations, 90 services, 30 days of reservation history, and high-utilization passenger counts. MySQL remains the production database and uses the Flyway migrations.
+
 ---
 
 ## Step 3: Running the React Frontend 💻
@@ -94,11 +104,14 @@ Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns
 
 Today, RailWatch reads operational data from the configured MySQL database through the Spring Boot API:
 
-1. `station`, `train`, and `reservation` records are created by the Flyway migration in `src/main/resources/db/migration/V1__baseline.sql`.
-2. The dashboard requests the selected journey date from `GET /api/dashboard`.
-3. Station history is loaded from `GET /api/stations/{stationId}/history`.
-4. When the `demo` profile and `DEMO_ENABLED=true` are used, the backend publishes simulated station updates through `GET /api/congestion/stream` (SSE). This is for development only; it is not a real railway provider.
-5. The frontend displays the latest API/SSE timestamp, highlights stations above the congestion threshold, and exports the visible snapshot with its journey date.
+1. `station`, `train`, and the initial `reservation` records are created by the Flyway migration in `src/main/resources/db/migration/V1__baseline.sql`.
+2. `V3__seed_operational_dataset.sql` adds a larger development dataset: 15 stations, 48 repeatable services, 30 days of four-times-daily passenger observations, and matching reservation activity (about 5,760 rows in each operational stream). The migration records the generated observations as a completed `railwatch-seed` import run.
+3. `V4__expand_station_congestion_dataset.sql` adds 15 more stations and 45 services, plus approximately 5,400 high-utilization observations and matching reservations. This intentionally exercises medium/high congestion cards, watchlists, station comparisons, and historical charts.
+4. The dashboard requests the selected journey date from `GET /api/dashboard`.
+5. Station history is loaded from `GET /api/stations/{stationId}/history`.
+6. When the `demo` profile and `DEMO_ENABLED=true` are used, the backend publishes simulated station updates through `GET /api/congestion/stream` (SSE). This is for development only; it is not a real railway provider.
+7. Congestion levels are capacity-aware: LOW is below 50% utilization, MEDIUM is 50%-80%, and HIGH is above 80%. The frontend ranks stations by booked passengers while chart colors and watchlist labels show station utilization.
+8. The frontend displays the latest API/SSE timestamp, highlights stations above the congestion threshold, and exports the visible snapshot with its journey date.
 
 For production, replace the seed/demo path with a scheduled provider or file-import pipeline. That pipeline should fetch the latest source data, validate and normalize it, persist an import batch and source timestamp, deduplicate records, and expose failures and stale-data status. The dashboard must not imply that data is live when the provider has not successfully updated it.
 

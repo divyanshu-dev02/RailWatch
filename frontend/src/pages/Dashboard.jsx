@@ -6,13 +6,14 @@ const CongestionChart = lazy(() => import('../components/CongestionChart'));
 import {
   getApiErrorMessage,
   getCongestionByPnr,
+  getCongestionByStationAndDate,
   getDashboard,
   getDemoTick,
   getStreamUrl,
   getStationHistory,
 } from '../services/api';
 
-const DEFAULT_DATE = '2026-04-27';
+const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
 const demoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 const emptyDashboard = { totalPassengers: 0, lowStations: 0, mediumStations: 0, highStations: 0, stations: [], trend: [], lastUpdated: null };
 
@@ -121,9 +122,31 @@ const Dashboard = () => {
     }
   };
 
-  const handleStationSearch = (stationId, selectedDate) => {
+  const handleStationSearch = async (stationId, selectedDate) => {
     setDate(selectedDate);
-    setResultData(null);
+    setSelectedStationId(stationId);
+    setSearchLoading(true);
+    setStationHistoryLoading(true);
+    setError(null);
+    try {
+      const end = new Date(`${selectedDate}T00:00:00`);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      const from = start.toISOString().slice(0, 10);
+      const [stationResult, history] = await Promise.all([
+        getCongestionByStationAndDate(stationId, selectedDate),
+        getStationHistory(stationId, from, selectedDate),
+      ]);
+      setResultData(stationResult);
+      setStationHistory(history);
+    } catch (err) {
+      setResultData(null);
+      setStationHistory([]);
+      setError(getApiErrorMessage(err, 'Unable to load the selected station data.'));
+    } finally {
+      setSearchLoading(false);
+      setStationHistoryLoading(false);
+    }
     document.getElementById('analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -173,8 +196,10 @@ const Dashboard = () => {
     stationId: station.stationId,
     name: station.stationName.replace(' Railway Station', '').replace(' Junction', ' Jn'),
     passengers: station.totalPassengers,
+    capacity: station.stationCapacity,
+    utilization: station.utilizationPercent,
     congestionLevel: station.congestionLevel,
-  })), [dashboard.stations]);
+  })).sort((a, b) => b.passengers - a.passengers), [dashboard.stations]);
 
   const hasData = dashboard.stations.length > 0;
 
@@ -184,13 +209,18 @@ const Dashboard = () => {
       <Navbar darkMode={darkMode} setDarkMode={setDarkMode} />
       <main id="main-content" className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
         <header className="hero-shell">
-          <div className="status-pill" role="status" aria-live="polite">
-            <span className={`status-dot ${live ? 'status-dot-live' : ''}`} aria-hidden="true" />
-            {live ? 'Live monitoring connected' : 'Live monitoring reconnecting'}
+          <div className="hero-topline">
+            <div className="status-pill" role="status" aria-live="polite">
+              <span className={`status-dot ${live ? 'status-dot-live' : ''}`} aria-hidden="true" />
+              {live ? 'Live monitoring connected' : 'Live monitoring reconnecting'}
+            </div>
+            <span className="hero-date">Operational view · {date}</span>
           </div>
-          <p className="eyebrow">Railway intelligence platform</p>
-          <h1>See the station ahead.<br /><span>Move with confidence.</span></h1>
-          <p className="hero-copy">Real-time passenger analytics and congestion signals for calmer, better-informed journeys.</p>
+          <div className="hero-copy-block">
+            <p className="eyebrow">Railway intelligence platform</p>
+            <h1>See the station ahead.<br /><span>Move with confidence.</span></h1>
+            <p className="hero-copy">A clear, live view of passenger pressure across your network, built for faster operational decisions.</p>
+          </div>
         </header>
 
         <section aria-labelledby="overview-heading" className="mb-10">
@@ -199,10 +229,10 @@ const Dashboard = () => {
             <span className="date-chip">Data date · {date}</span>
           </div>
           <div className="kpi-grid">
-            <Kpi label="Passengers tracked" value={dashboard.totalPassengers} tone="indigo" />
-            <Kpi label="Low congestion" value={dashboard.lowStations} tone="green" />
-            <Kpi label="Medium congestion" value={dashboard.mediumStations} tone="amber" />
-            <Kpi label="High congestion" value={dashboard.highStations} tone="red" />
+            <Kpi label="Passengers tracked" value={dashboard.totalPassengers} tone="indigo" hint="Across monitored stations" />
+            <Kpi label="Low congestion" value={dashboard.lowStations} tone="green" hint="Within normal range" />
+            <Kpi label="Medium congestion" value={dashboard.mediumStations} tone="amber" hint="Needs attention" />
+            <Kpi label="High congestion" value={dashboard.highStations} tone="red" hint="Immediate attention" />
           </div>
         </section>
 
@@ -219,7 +249,7 @@ const Dashboard = () => {
             <div><span className={`freshness-dot ${dashboard.lastUpdated ? 'fresh' : ''}`} /> {dashboard.lastUpdated ? `Data refreshed ${new Date(dashboard.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for data'}</div>
             <button type="button" className="export-button" onClick={exportCsv} disabled={!hasData}>Export CSV ↗</button>
           </div>
-          {dashboardLoading && !hasData ? <DashboardSkeleton /> : hasData ? <Suspense fallback={<DashboardSkeleton />}><CongestionChart chartData={chartData} trendData={dashboard.trend} stationHistory={stationHistoryLoading ? [] : stationHistory} selectedStationId={selectedStationId} onSelectStation={handleSelectStation} /></Suspense> : <EmptyState onRetry={loadDashboard} />}
+          {dashboardLoading && !hasData ? <DashboardSkeleton /> : hasData ? <Suspense fallback={<DashboardSkeleton />}><CongestionChart darkMode={darkMode} chartData={chartData} trendData={dashboard.trend} stationHistory={stationHistoryLoading ? [] : stationHistory} selectedStationId={selectedStationId} onSelectStation={handleSelectStation} /></Suspense> : <EmptyState onRetry={loadDashboard} />}
         </section>
         {demoMode && <button className="demo-button" type="button" onClick={handleDemoTick} disabled={demoLoading}>{demoLoading ? 'Simulating…' : 'Simulate update'}</button>}
       </main>
@@ -228,7 +258,7 @@ const Dashboard = () => {
   );
 };
 
-const Kpi = ({ label, value, tone }) => <article className={`kpi-card kpi-${tone}`}><p>{label}</p><strong>{Number(value || 0).toLocaleString()}</strong><span className="kpi-line" aria-hidden="true" /></article>;
+const Kpi = ({ label, value, tone, hint }) => <article className={`kpi-card kpi-${tone}`}><div className="kpi-label"><span className="kpi-indicator" aria-hidden="true" />{label}</div><strong>{Number(value || 0).toLocaleString()}</strong><small>{hint}</small><span className="kpi-line" aria-hidden="true" /></article>;
 const DashboardSkeleton = () => <div className="chart-grid" aria-label="Loading analytics" role="status"><div className="chart-skeleton skeleton" /><div className="chart-skeleton skeleton" /></div>;
 const EmptyState = ({ onRetry }) => <div className="empty-state"><div className="empty-icon" aria-hidden="true">◌</div><h3>No station data yet</h3><p>We couldn’t find live data for this date. Try again or choose another date.</p><button className="secondary-button" type="button" onClick={onRetry}>Retry loading</button></div>;
 

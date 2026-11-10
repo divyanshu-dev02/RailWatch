@@ -44,8 +44,9 @@ public class CongestionController {
     }
 
     @GetMapping("/dashboard")
-    public ResponseEntity<?> dashboard(@RequestParam(defaultValue = "2026-04-27")
+    public ResponseEntity<?> dashboard(@RequestParam(required = false)
                                        @Pattern(regexp = "\\d{4}-\\d{2}-\\d{2}") String date) {
+        if (date == null || date.isBlank()) date = LocalDate.now().toString();
         if (!validDate(date)) return ResponseEntity.badRequest().body(ApiError.of("INVALID_DATE", "Use YYYY-MM-DD format.", 400));
         return ResponseEntity.ok(service.getDashboard(date));
     }

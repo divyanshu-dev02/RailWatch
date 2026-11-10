@@ -4,7 +4,7 @@ import { getApiErrorMessage, getStations } from '../services/api';
 const SearchBar = ({ onSearchPnr, onSearchStation, loading }) => {
   const [pnr, setPnr] = useState('');
   const [stationId, setStationId] = useState('');
-  const [date, setDate] = useState('2026-04-27');
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [stations, setStations] = useState([]);
   const [activeTab, setActiveTab] = useState('pnr');
   const [stationsLoading, setStationsLoading] = useState(true);

@@ -44,4 +44,11 @@ class CongestionServiceTest {
 
         verifyNoInteractions(reservationRepository);
     }
+
+    @Test
+    void congestionUsesStationCapacityForOperationalClassification() {
+        assertThat(service.calculateCongestionLevel(4000, 10000)).isEqualTo("LOW");
+        assertThat(service.calculateCongestionLevel(6500, 10000)).isEqualTo("MEDIUM");
+        assertThat(service.calculateCongestionLevel(8500, 10000)).isEqualTo("HIGH");
+    }
 }

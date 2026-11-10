@@ -41,7 +41,7 @@ public class CongestionService {
         int stationId = train.getStationId();
         Optional<Station> stationOpt = stationRepository.findById(stationId);
         int totalPassengers = totalPassengers(stationId, reservation.getJourneyDate());
-        return CongestionResponse.builder().congestionLevel(calculateCongestionLevel(totalPassengers))
+        return CongestionResponse.builder().congestionLevel(calculateCongestionLevel(totalPassengers, stationOpt.map(Station::getPassengerCapacity).orElse(null)))
                 .totalPassengers(totalPassengers).stationName(stationOpt.map(Station::getStationName).orElse("Unknown"))
                 .city(stationOpt.map(Station::getCity).orElse("Unknown")).trainName(train.getTrainName())
                 .departureTime(train.getDepartureTime()).platform(train.getPlatform()).pnr(pnr)
@@ -95,20 +95,35 @@ public class CongestionService {
         Station station = stations.get(ThreadLocalRandom.current().nextInt(stations.size()));
         int current = totalPassengers(station.getStationId(), date);
         int next = Math.max(0, current + ThreadLocalRandom.current().nextInt(-75, 126));
-        StationSnapshot event = new StationSnapshot(station.getStationId(), station.getStationName(), station.getCity(), next,
-                calculateCongestionLevel(next), date, Instant.now().toString());
+        StationSnapshot event = stationSnapshot(station, next, date);
         publish(event);
         return event;
     }
 
     private StationSnapshot snapshot(Station station, String date) {
         int passengers = totalPassengers(station.getStationId(), date);
+        return stationSnapshot(station, passengers, date);
+    }
+
+    private StationSnapshot stationSnapshot(Station station, int passengers, String date) {
+        Integer capacity = station.getPassengerCapacity();
+        int utilization = capacity == null || capacity <= 0
+                ? 0
+                : Math.round((passengers * 100f) / capacity);
         return new StationSnapshot(station.getStationId(), station.getStationName(), station.getCity(), passengers,
-                calculateCongestionLevel(passengers), date, Instant.now().toString());
+                capacity, utilization, calculateCongestionLevel(passengers, capacity), date, Instant.now().toString());
     }
 
     private int countLevel(List<StationSnapshot> snapshots, String level) {
         return (int) snapshots.stream().filter(snapshot -> level.equals(snapshot.congestionLevel())).count();
+    }
+
+    public String calculateCongestionLevel(int passengers, Integer capacity) {
+        if (capacity == null || capacity <= 0) return calculateCongestionLevel(passengers);
+        int utilization = Math.round((passengers * 100f) / capacity);
+        if (utilization < 50) return "LOW";
+        if (utilization <= 80) return "MEDIUM";
+        return "HIGH";
     }
 
     private void publish(StationSnapshot event) {
