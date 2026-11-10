@@ -50,7 +50,7 @@ class CongestionControllerValidationTest {
 
     @Test
     void rejectsMalformedPnr() throws Exception {
-        mockMvc.perform(get("/api/pnr/123%20bad"))
+        mockMvc.perform(get("/api/pnr/123_bad"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
     }

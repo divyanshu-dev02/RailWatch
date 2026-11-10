@@ -9,6 +9,7 @@ import {
   getDashboard,
   getDemoTick,
   getStreamUrl,
+  getStationHistory,
 } from '../services/api';
 
 const DEFAULT_DATE = '2026-04-27';
@@ -25,6 +26,9 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [live, setLive] = useState(false);
   const [demoLoading, setDemoLoading] = useState(false);
+  const [selectedStationId, setSelectedStationId] = useState(null);
+  const [stationHistory, setStationHistory] = useState([]);
+  const [stationHistoryLoading, setStationHistoryLoading] = useState(false);
   const requestRef = useRef(null);
 
   const loadDashboard = useCallback(async () => {
@@ -123,6 +127,37 @@ const Dashboard = () => {
     document.getElementById('analytics')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  const handleSelectStation = async (stationId) => {
+    setSelectedStationId(stationId);
+    setStationHistoryLoading(true);
+    try {
+      const end = new Date(`${date}T00:00:00`);
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      const from = start.toISOString().slice(0, 10);
+      setStationHistory(await getStationHistory(stationId, from, date));
+    } catch (err) {
+      setStationHistory([]);
+      setError(getApiErrorMessage(err, 'Unable to load station history.'));
+    } finally {
+      setStationHistoryLoading(false);
+    }
+  };
+
+  const exportCsv = () => {
+    const rows = [
+      ['Station', 'City', 'Passengers', 'Congestion', 'Journey date'],
+      ...dashboard.stations.map((station) => [station.stationName, station.city, station.totalPassengers, station.congestionLevel, station.journeyDate]),
+    ];
+    const csv = rows.map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `railwatch-${date}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleDemoTick = async () => {
     setDemoLoading(true);
     try {
@@ -135,8 +170,10 @@ const Dashboard = () => {
   };
 
   const chartData = useMemo(() => (dashboard.stations || []).map((station) => ({
+    stationId: station.stationId,
     name: station.stationName.replace(' Railway Station', '').replace(' Junction', ' Jn'),
     passengers: station.totalPassengers,
+    congestionLevel: station.congestionLevel,
   })), [dashboard.stations]);
 
   const hasData = dashboard.stations.length > 0;
@@ -178,7 +215,11 @@ const Dashboard = () => {
 
         <section id="analytics" aria-labelledby="analytics-heading" className="scroll-mt-24">
           <div className="section-heading"><div><p className="eyebrow">Live analytics</p><h2 id="analytics-heading">Congestion pulse</h2></div>{dashboard.lastUpdated && <span className="muted">Updated {new Date(dashboard.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div>
-          {dashboardLoading && !hasData ? <DashboardSkeleton /> : hasData ? <Suspense fallback={<DashboardSkeleton />}><CongestionChart chartData={chartData} trendData={dashboard.trend} /></Suspense> : <EmptyState onRetry={loadDashboard} />}
+          <div className="analytics-toolbar">
+            <div><span className={`freshness-dot ${dashboard.lastUpdated ? 'fresh' : ''}`} /> {dashboard.lastUpdated ? `Data refreshed ${new Date(dashboard.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for data'}</div>
+            <button type="button" className="export-button" onClick={exportCsv} disabled={!hasData}>Export CSV ↗</button>
+          </div>
+          {dashboardLoading && !hasData ? <DashboardSkeleton /> : hasData ? <Suspense fallback={<DashboardSkeleton />}><CongestionChart chartData={chartData} trendData={dashboard.trend} stationHistory={stationHistoryLoading ? [] : stationHistory} selectedStationId={selectedStationId} onSelectStation={handleSelectStation} /></Suspense> : <EmptyState onRetry={loadDashboard} />}
         </section>
         {demoMode && <button className="demo-button" type="button" onClick={handleDemoTick} disabled={demoLoading}>{demoLoading ? 'Simulating…' : 'Simulate update'}</button>}
       </main>

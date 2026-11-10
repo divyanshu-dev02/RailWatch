@@ -29,6 +29,24 @@ public class Train {
 
     private int platform;
 
+    @Column(name = "service_code", length = 32, unique = true)
+    private String serviceCode;
+
+    @Column(name = "arrival_time", length = 10)
+    private String arrivalTime;
+
+    @Column(name = "passenger_capacity")
+    private Integer passengerCapacity;
+
+    @Column(nullable = false)
+    private boolean active = true;
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private java.time.Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    private java.time.Instant updatedAt;
+
     @ManyToOne
     @JoinColumn(name = "station_id", insertable = false, updatable = false)
     @JsonIgnore

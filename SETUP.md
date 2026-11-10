@@ -87,8 +87,22 @@ Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns
    - Try a sample PNR from the SQL file, e.g., `12345678` (High) or `32345678` (Low).
    - Enter it and click **Search**. You'll see the exact train details and the station congestion status.
 4. **Analytics Dashboard:**
-   - Scroll down to see the real-time passenger volume bar chart.
+   - Scroll down to compare station volumes, inspect the network trend, click a station for history, review the congestion watchlist, and export the visible snapshot as CSV.
    - Toggle **Dark Mode** via the moon icon in the navbar.
+
+## 📡 Data lifecycle and freshness
+
+Today, RailWatch reads operational data from the configured MySQL database through the Spring Boot API:
+
+1. `station`, `train`, and `reservation` records are created by the Flyway migration in `src/main/resources/db/migration/V1__baseline.sql`.
+2. The dashboard requests the selected journey date from `GET /api/dashboard`.
+3. Station history is loaded from `GET /api/stations/{stationId}/history`.
+4. When the `demo` profile and `DEMO_ENABLED=true` are used, the backend publishes simulated station updates through `GET /api/congestion/stream` (SSE). This is for development only; it is not a real railway provider.
+5. The frontend displays the latest API/SSE timestamp, highlights stations above the congestion threshold, and exports the visible snapshot with its journey date.
+
+For production, replace the seed/demo path with a scheduled provider or file-import pipeline. That pipeline should fetch the latest source data, validate and normalize it, persist an import batch and source timestamp, deduplicate records, and expose failures and stale-data status. The dashboard must not imply that data is live when the provider has not successfully updated it.
+
+This is useful because operators need more than one congestion number: they can compare stations, inspect history, identify high-congestion locations, verify data freshness, and share a timestamped snapshot. The charts are an operational visualization layer; their accuracy depends on the quality and freshness of the ingestion pipeline behind them.
 
 ---
 

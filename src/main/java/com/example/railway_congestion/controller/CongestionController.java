@@ -33,9 +33,12 @@ public class CongestionController {
         this.trainRepository = trainRepository;
     }
 
-    @GetMapping("/pnr/{pnr}")
+    @GetMapping("/pnr/{pnr:.+}")
     public ResponseEntity<?> getStatusByPnr(
             @PathVariable @Size(min = 1, max = 20) @Pattern(regexp = "[A-Za-z0-9]+") String pnr) {
+        if (pnr == null || pnr.length() > 20 || !pnr.matches("[A-Za-z0-9]+")) {
+            return ResponseEntity.badRequest().body(ApiError.of("INVALID_REQUEST", "The request parameters are invalid.", 400));
+        }
         CongestionResponse response = service.getStatusByPnr(pnr.trim());
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }

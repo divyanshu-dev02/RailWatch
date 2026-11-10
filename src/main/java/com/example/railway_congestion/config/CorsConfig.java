@@ -28,7 +28,7 @@ public class CorsConfig {
                                     }
                                 })
                                 .toArray(String[]::new))
-                        .allowedMethods("GET", "OPTIONS")
+                        .allowedMethods("GET", "POST", "OPTIONS")
                         .allowedHeaders("Accept", "Content-Type", "X-Request-Id")
                         .exposedHeaders("X-Request-Id")
                         .allowCredentials(false)

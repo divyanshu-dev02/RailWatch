@@ -30,6 +30,27 @@ public class Reservation {
     @Column(name = "reserved_passengers")
     private int reservedPassengers;
 
+    @Column(name = "provider_code", nullable = false, length = 64)
+    private String providerCode = "legacy";
+
+    @Column(name = "source_record_id", length = 128)
+    private String sourceRecordId;
+
+    @Column(name = "source_updated_at")
+    private java.time.Instant sourceUpdatedAt;
+
+    @Column(name = "imported_at", nullable = false, insertable = false, updatable = false)
+    private java.time.Instant importedAt;
+
+    @Column(nullable = false, length = 24)
+    private String status = "ACTIVE";
+
+    @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
+    private java.time.Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false, insertable = false, updatable = false)
+    private java.time.Instant updatedAt;
+
     @ManyToOne
     @JoinColumn(name = "train_id")
     @JsonIgnore
