@@ -62,7 +62,7 @@ If MySQL is not installed or running, use the H2 local profile:
 bash mvnw spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
-This uses an in-memory H2 database and loads 30 stations, 90 services, 30 days of reservation history, and high-utilization passenger counts. MySQL remains the production database and uses the Flyway migrations.
+This uses an in-memory H2 database and loads 30 stations, 90 services, and synthetic reservations covering 30 days before and after the database starts, including high-utilization passenger counts. MySQL remains the production database and uses the Flyway migrations.
 
 ---
 

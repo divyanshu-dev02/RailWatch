@@ -8,7 +8,6 @@ const getLevelConfig = (level) => {
         description: 'Station is relatively empty. Comfortable travel expected.',
         bgAccent: 'from-emerald-500/10 to-green-500/5',
         borderAccent: 'border-emerald-500/20',
-        textColor: 'text-emerald-400',
         progressWidth: '33%',
         progressColor: 'bg-gradient-to-r from-emerald-500 to-green-400',
       };
@@ -20,7 +19,6 @@ const getLevelConfig = (level) => {
         description: 'Moderate crowd expected. Plan accordingly.',
         bgAccent: 'from-amber-500/10 to-yellow-500/5',
         borderAccent: 'border-amber-500/20',
-        textColor: 'text-amber-400',
         progressWidth: '66%',
         progressColor: 'bg-gradient-to-r from-amber-500 to-yellow-400',
       };
@@ -32,7 +30,6 @@ const getLevelConfig = (level) => {
         description: 'Heavy crowd expected. Arrive early and stay alert.',
         bgAccent: 'from-red-500/10 to-rose-500/5',
         borderAccent: 'border-red-500/20',
-        textColor: 'text-red-400',
         progressWidth: '100%',
         progressColor: 'bg-gradient-to-r from-red-500 to-rose-400',
       };
@@ -44,7 +41,6 @@ const getLevelConfig = (level) => {
         description: '',
         bgAccent: 'from-gray-500/10 to-gray-500/5',
         borderAccent: 'border-gray-500/20',
-        textColor: 'text-gray-400',
         progressWidth: '0%',
         progressColor: 'bg-gray-500',
       };
@@ -59,15 +55,15 @@ const ResultCard = ({ data }) => {
   return (
     <div className="max-w-3xl mx-auto mt-8 animate-fade-in-up delay-300">
       {/* Main Congestion Card */}
-      <div className={`glass-card p-6 sm:p-8 bg-gradient-to-br ${config.bgAccent} border ${config.borderAccent}`}>
+      <div className={`result-card glass-card p-6 sm:p-8 bg-gradient-to-br ${config.bgAccent} border ${config.borderAccent}`}>
         {/* Header Row */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <h3 className="result-title text-xl font-bold flex items-center gap-2">
               <span className="text-2xl">{config.icon}</span>
               Station Congestion Status
             </h3>
-            <p className="text-sm text-gray-400 mt-1">{config.description}</p>
+            <p className="result-description text-sm mt-1">{config.description}</p>
           </div>
           <span className={`${config.badge} px-5 py-2 rounded-full text-sm font-bold tracking-wider uppercase text-center`}>
             {config.text}
@@ -76,7 +72,7 @@ const ResultCard = ({ data }) => {
 
         {/* Congestion Progress Bar */}
         <div className="mb-6">
-          <div className="flex justify-between text-xs text-gray-400 mb-2">
+          <div className="result-progress-label flex justify-between text-xs mb-2">
             <span>Low</span>
             <span>Medium</span>
             <span>High</span>
@@ -116,7 +112,7 @@ const ResultCard = ({ data }) => {
         {/* Train Details (if available from PNR search) */}
         {data.trainName && (
           <div className="border-t border-white/10 pt-5">
-            <h4 className="text-sm font-semibold text-gray-300 mb-3 uppercase tracking-wider">
+            <h4 className="result-train-heading text-sm font-semibold mb-3 uppercase tracking-wider">
               🚂 Train Details
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -133,10 +129,10 @@ const ResultCard = ({ data }) => {
 };
 
 const StatBox = ({ label, value, icon }) => (
-  <div className="glass rounded-xl p-3 text-center hover:bg-white/5 transition-all duration-200">
+  <div className="result-stat rounded-xl p-3 text-center transition-all duration-200">
     <div className="text-lg mb-1">{icon}</div>
-    <div className="text-white font-semibold text-sm truncate">{value}</div>
-    <div className="text-gray-500 text-xs mt-0.5">{label}</div>
+    <div className="result-value font-semibold text-sm truncate">{value}</div>
+    <div className="result-label text-xs mt-0.5">{label}</div>
   </div>
 );
 

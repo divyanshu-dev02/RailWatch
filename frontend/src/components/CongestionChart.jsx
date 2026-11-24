@@ -13,14 +13,28 @@ const CongestionChart = ({ chartData = [], trendData = [], stationHistory = [], 
     : { text: '#52627a', grid: 'rgba(82,98,122,0.18)', tooltip: '#ffffff', tooltipBorder: '#d6deea' };
   const [range, setRange] = useState('7d');
   const [stationChart, setStationChart] = useState('bar');
+  const [stationQuery, setStationQuery] = useState('');
+  const [levelFilter, setLevelFilter] = useState('ALL');
+  const [showAllWatchlist, setShowAllWatchlist] = useState(false);
   const visibleTrend = useMemo(() => range === '7d' ? trendData.slice(-7) : trendData, [range, trendData]);
   const selectedStation = chartData.find((station) => station.stationId === selectedStationId);
+  const filteredStations = useMemo(() => {
+    const query = stationQuery.trim().toLocaleLowerCase();
+    return chartData.filter((station) => {
+      const matchesQuery = !query || station.name.toLocaleLowerCase().includes(query)
+        || station.city?.toLocaleLowerCase().includes(query);
+      return matchesQuery && (levelFilter === 'ALL' || station.congestionLevel === levelFilter);
+    });
+  }, [chartData, levelFilter, stationQuery]);
   const passengerDistribution = useMemo(() => ['LOW', 'MEDIUM', 'HIGH'].map((level) => ({
     name: level,
-    value: chartData.filter((station) => station.congestionLevel === level)
+    value: filteredStations.filter((station) => station.congestionLevel === level)
       .reduce((sum, station) => sum + station.passengers, 0),
     fill: COLORS[level],
-  })).filter((item) => item.value > 0), [chartData]);
+  })).filter((item) => item.value > 0), [filteredStations]);
+  const watchlist = filteredStations.filter((station) => station.congestionLevel !== 'LOW')
+    .sort((a, b) => b.utilization - a.utilization || b.passengers - a.passengers);
+  const visibleWatchlist = showAllWatchlist ? watchlist : watchlist.slice(0, 8);
   const projection = useMemo(() => {
     const history = stationHistory.map((point) => point.totalPassengers);
     return stationHistory.map((point, index) => {
@@ -30,6 +44,21 @@ const CongestionChart = ({ chartData = [], trendData = [], stationHistory = [], 
   }, [stationHistory]);
 
   return (
+  <div>
+    <div className="station-filter-toolbar">
+      <label className="station-filter-search" htmlFor="station-filter">Find a station
+        <input id="station-filter" type="search" value={stationQuery} onChange={(event) => setStationQuery(event.target.value)} placeholder="Search station or city" />
+      </label>
+      <label className="station-filter-level" htmlFor="congestion-filter">Congestion
+        <select id="congestion-filter" value={levelFilter} onChange={(event) => setLevelFilter(event.target.value)}>
+          <option value="ALL">All levels</option>
+          <option value="HIGH">High</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="LOW">Low</option>
+        </select>
+      </label>
+      <span className="station-result-count" aria-live="polite">Showing {filteredStations.length} of {chartData.length} stations</span>
+    </div>
   <div className="chart-grid">
       <ChartCard title="Station ranking" subtitle="Booked passengers ranked by station; color shows capacity utilization">
         <ChartViewSwitcher value={stationChart} onChange={setStationChart} options={[
@@ -38,21 +67,21 @@ const CongestionChart = ({ chartData = [], trendData = [], stationHistory = [], 
           ['area', 'Area'],
           ['pie', 'Distribution'],
         ]} />
-        <ResponsiveContainer width="100%" height="100%">
+        {!filteredStations.length ? <div className="chart-empty">No stations match these filters. Try a different name or congestion level.</div> : <ResponsiveContainer width="100%" height="100%">
           {stationChart === 'pie' ? <PieChart>
             <Pie data={passengerDistribution} dataKey="value" nameKey="name" cx="50%" cy="48%" outerRadius={88} innerRadius={52} paddingAngle={4} label={({ name, value }) => `${name} ${formatAxisValue(value)}`}>
               {passengerDistribution.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
             </Pie>
             <Tooltip contentStyle={{ background: chartTheme.tooltip, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 12, color: chartTheme.text }} itemStyle={{ color: chartTheme.text }} labelStyle={{ color: chartTheme.text }} formatter={(value) => [formatNumber(value), 'Passengers']} />
             <Legend wrapperStyle={{ color: chartTheme.text, fontSize: 11 }} />
-          </PieChart> : stationChart === 'line' ? <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          </PieChart> : stationChart === 'line' ? <LineChart data={filteredStations} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
             <XAxis dataKey="name" tick={{ fill: chartTheme.text, fontSize: 10 }} tickLine={false} angle={-15} height={45} />
             <YAxis tick={{ fill: chartTheme.text, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatAxisValue} />
             <Tooltip contentStyle={{ background: chartTheme.tooltip, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 12, color: chartTheme.text }} itemStyle={{ color: chartTheme.text }} labelStyle={{ color: chartTheme.text }} formatter={(value, name, item) => [formatNumber(value), `${name} · ${item.payload.utilization}% utilized`]} />
             <Line type="monotone" dataKey="passengers" name="Passengers" stroke="#8aa8ff" strokeWidth={3} dot={{ fill: '#8aa8ff', r: 4 }} activeDot={{ r: 7 }}
               onClick={(entry) => onSelectStation?.(getStationId(entry))} />
-          </LineChart> : stationChart === 'area' ? <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          </LineChart> : stationChart === 'area' ? <AreaChart data={filteredStations} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <defs><linearGradient id="passengerGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#8aa8ff" stopOpacity={0.65} /><stop offset="95%" stopColor="#8aa8ff" stopOpacity={0.05} /></linearGradient></defs>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
             <XAxis dataKey="name" tick={{ fill: chartTheme.text, fontSize: 10 }} tickLine={false} angle={-15} height={45} />
@@ -60,17 +89,17 @@ const CongestionChart = ({ chartData = [], trendData = [], stationHistory = [], 
             <Tooltip contentStyle={{ background: chartTheme.tooltip, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 12, color: chartTheme.text }} itemStyle={{ color: chartTheme.text }} labelStyle={{ color: chartTheme.text }} formatter={(value, name, item) => [formatNumber(value), `${name} · ${item.payload.utilization}% utilized`]} />
             <Area type="monotone" dataKey="passengers" name="Passengers" stroke="#8aa8ff" fill="url(#passengerGradient)" strokeWidth={3}
               onClick={(entry) => onSelectStation?.(getStationId(entry))} />
-          </AreaChart> : <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+          </AreaChart> : <BarChart data={filteredStations} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} vertical={false} />
             <XAxis dataKey="name" tick={{ fill: chartTheme.text, fontSize: 10 }} tickLine={false} angle={-15} height={45} />
             <YAxis tick={{ fill: chartTheme.text, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={formatAxisValue} />
             <Tooltip contentStyle={{ background: chartTheme.tooltip, border: `1px solid ${chartTheme.tooltipBorder}`, borderRadius: 12, color: chartTheme.text }} itemStyle={{ color: chartTheme.text }} labelStyle={{ color: chartTheme.text }} formatter={(value, name, item) => [formatNumber(value), `${name} · ${item.payload.utilization}% utilized`]} />
             <Bar dataKey="passengers" name="Passengers" radius={[8, 8, 0, 0]} barSize={28}
               onClick={(entry) => onSelectStation?.(getStationId(entry))}>
-              {chartData.map((entry) => <Cell key={entry.stationId} fill={entry.stationId === selectedStationId ? '#8aa8ff' : getColor(entry.congestionLevel)} cursor="pointer" />)}
+              {filteredStations.map((entry) => <Cell key={entry.stationId} fill={entry.stationId === selectedStationId ? '#8aa8ff' : getColor(entry.congestionLevel)} cursor="pointer" />)}
             </Bar>
           </BarChart>}
-        </ResponsiveContainer>
+        </ResponsiveContainer>}
       </ChartCard>
       <ChartCard title="Network trend" subtitle="Database-backed reservation volume">
         <div className="chart-controls" role="group" aria-label="Trend range">
@@ -101,15 +130,17 @@ const CongestionChart = ({ chartData = [], trendData = [], stationHistory = [], 
       </ChartCard>
       <ChartCard title="Congestion watchlist" subtitle="Stations that need attention first">
         <div className="watchlist">
-          {chartData.filter((station) => station.congestionLevel !== 'LOW').sort((a, b) => b.passengers - a.passengers).map((station) => (
+          {visibleWatchlist.map((station) => (
             <button type="button" className="watch-item" key={station.stationId} onClick={() => onSelectStation?.(station.stationId)}>
               <span><strong>{station.name}</strong><small>{station.congestionLevel} · {station.utilization}% utilized</small></span>
               <b>{station.passengers.toLocaleString()}</b>
             </button>
           ))}
-          {!chartData.some((station) => station.congestionLevel !== 'LOW') && <div className="chart-empty">All stations are currently below the medium threshold.</div>}
+          {!watchlist.length && <div className="chart-empty">No stations match this watchlist filter.</div>}
         </div>
+        {watchlist.length > 8 && <button className="watchlist-toggle" type="button" onClick={() => setShowAllWatchlist((showing) => !showing)}>{showAllWatchlist ? 'Show fewer stations' : `Show all ${watchlist.length} stations`}</button>}
       </ChartCard>
+  </div>
   </div>
   );
 };

@@ -13,6 +13,7 @@ import com.example.railway_congestion.repository.TrainRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -86,6 +87,11 @@ public class CongestionService {
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
         emitter.onError(error -> emitters.remove(emitter));
+        try {
+            emitter.send(SseEmitter.event().name("stream-ready").data(Instant.now().toString()));
+        } catch (IOException exception) {
+            emitter.completeWithError(exception);
+        }
         return emitter;
     }
 

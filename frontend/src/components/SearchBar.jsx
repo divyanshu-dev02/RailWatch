@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getApiErrorMessage, getStations } from '../services/api';
+import { getLocalDateString } from '../utils/date';
 
 const SearchBar = ({ onSearchPnr, onSearchStation, loading }) => {
   const [pnr, setPnr] = useState('');
   const [stationId, setStationId] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(getLocalDateString);
   const [stations, setStations] = useState([]);
   const [activeTab, setActiveTab] = useState('pnr');
   const [stationsLoading, setStationsLoading] = useState(true);

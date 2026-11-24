@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import Navbar from '../components/Navbar';
 import SearchBar from '../components/SearchBar';
 import ResultCard from '../components/ResultCard';
+import { addDaysToDateString, getLocalDateString } from '../utils/date';
 const CongestionChart = lazy(() => import('../components/CongestionChart'));
 import {
   getApiErrorMessage,
@@ -13,7 +14,7 @@ import {
   getStationHistory,
 } from '../services/api';
 
-const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
+const DEFAULT_DATE = getLocalDateString();
 const demoMode = import.meta.env.VITE_DEMO_MODE === 'true';
 const emptyDashboard = { totalPassengers: 0, lowStations: 0, mediumStations: 0, highStations: 0, stations: [], trend: [], lastUpdated: null };
 
@@ -25,7 +26,7 @@ const Dashboard = () => {
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [live, setLive] = useState(false);
+  const [streamStatus, setStreamStatus] = useState('connecting');
   const [demoLoading, setDemoLoading] = useState(false);
   const [selectedStationId, setSelectedStationId] = useState(null);
   const [stationHistory, setStationHistory] = useState([]);
@@ -68,14 +69,14 @@ const Dashboard = () => {
       source = new EventSource(getStreamUrl());
       source.onopen = () => {
         attempts = 0;
-        setLive(true);
+        setStreamStatus('connected');
       };
       source.onerror = () => {
         source.close();
-        setLive(false);
-        if (!stopped && attempts < 5) {
+        if (!stopped) {
+          setStreamStatus('reconnecting');
           attempts += 1;
-          reconnectTimer = window.setTimeout(connect, Math.min(1000 * 2 ** attempts, 15000));
+          reconnectTimer = window.setTimeout(connect, Math.min(1000 * 2 ** attempts, 30000));
         }
       };
       source.addEventListener('congestion-update', (event) => {
@@ -97,7 +98,7 @@ const Dashboard = () => {
             };
           });
         } catch {
-          setLive(false);
+          setError('Received an unreadable live update. The dashboard snapshot is unchanged.');
         }
       });
     };
@@ -129,10 +130,7 @@ const Dashboard = () => {
     setStationHistoryLoading(true);
     setError(null);
     try {
-      const end = new Date(`${selectedDate}T00:00:00`);
-      const start = new Date(end);
-      start.setDate(start.getDate() - 6);
-      const from = start.toISOString().slice(0, 10);
+      const from = addDaysToDateString(selectedDate, -6);
       const [stationResult, history] = await Promise.all([
         getCongestionByStationAndDate(stationId, selectedDate),
         getStationHistory(stationId, from, selectedDate),
@@ -154,10 +152,7 @@ const Dashboard = () => {
     setSelectedStationId(stationId);
     setStationHistoryLoading(true);
     try {
-      const end = new Date(`${date}T00:00:00`);
-      const start = new Date(end);
-      start.setDate(start.getDate() - 6);
-      const from = start.toISOString().slice(0, 10);
+      const from = addDaysToDateString(date, -6);
       setStationHistory(await getStationHistory(stationId, from, date));
     } catch (err) {
       setStationHistory([]);
@@ -195,6 +190,7 @@ const Dashboard = () => {
   const chartData = useMemo(() => (dashboard.stations || []).map((station) => ({
     stationId: station.stationId,
     name: station.stationName.replace(' Railway Station', '').replace(' Junction', ' Jn'),
+    city: station.city,
     passengers: station.totalPassengers,
     capacity: station.stationCapacity,
     utilization: station.utilizationPercent,
@@ -211,8 +207,8 @@ const Dashboard = () => {
         <header className="hero-shell">
           <div className="hero-topline">
             <div className="status-pill" role="status" aria-live="polite">
-              <span className={`status-dot ${live ? 'status-dot-live' : ''}`} aria-hidden="true" />
-              {live ? 'Live monitoring connected' : 'Live monitoring reconnecting'}
+              <span className={`status-dot ${streamStatus === 'connected' ? 'status-dot-live' : ''}`} aria-hidden="true" />
+              {streamStatus === 'connected' ? 'Live stream connected' : streamStatus === 'connecting' ? 'Connecting to live stream' : 'Live stream reconnecting'}
             </div>
             <span className="hero-date">Operational view · {date}</span>
           </div>
@@ -247,7 +243,16 @@ const Dashboard = () => {
           <div className="section-heading"><div><p className="eyebrow">Live analytics</p><h2 id="analytics-heading">Congestion pulse</h2></div>{dashboard.lastUpdated && <span className="muted">Updated {new Date(dashboard.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>}</div>
           <div className="analytics-toolbar">
             <div><span className={`freshness-dot ${dashboard.lastUpdated ? 'fresh' : ''}`} /> {dashboard.lastUpdated ? `Data refreshed ${new Date(dashboard.lastUpdated).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Waiting for data'}</div>
-            <button type="button" className="export-button" onClick={exportCsv} disabled={!hasData}>Export CSV ↗</button>
+            <div className="analytics-actions">
+              <span className={`stream-status stream-${streamStatus}`} role="status" aria-live="polite">
+                <span className="status-dot" aria-hidden="true" />
+                {streamStatus === 'connected' ? 'Live updates on' : streamStatus === 'connecting' ? 'Connecting…' : 'Retrying connection'}
+              </span>
+              <button type="button" className="export-button" onClick={() => void loadDashboard()} disabled={dashboardLoading} aria-label="Refresh dashboard data">
+                {dashboardLoading ? 'Refreshing…' : 'Refresh'}
+              </button>
+              <button type="button" className="export-button" onClick={exportCsv} disabled={!hasData}>Export all CSV ↗</button>
+            </div>
           </div>
           {dashboardLoading && !hasData ? <DashboardSkeleton /> : hasData ? <Suspense fallback={<DashboardSkeleton />}><CongestionChart darkMode={darkMode} chartData={chartData} trendData={dashboard.trend} stationHistory={stationHistoryLoading ? [] : stationHistory} selectedStationId={selectedStationId} onSelectStation={handleSelectStation} /></Suspense> : <EmptyState onRetry={loadDashboard} />}
         </section>
