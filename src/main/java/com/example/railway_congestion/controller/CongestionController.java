@@ -8,6 +8,7 @@ import com.example.railway_congestion.dto.TrendPoint;
 import com.example.railway_congestion.model.Train;
 import com.example.railway_congestion.repository.TrainRepository;
 import com.example.railway_congestion.service.CongestionService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +29,9 @@ public class CongestionController {
     private final CongestionService service;
     private final TrainRepository trainRepository;
 
+    @Value("${railwatch.security.pnr-lookup-enabled:false}")
+    private boolean pnrLookupEnabled;
+
     public CongestionController(CongestionService service, TrainRepository trainRepository) {
         this.service = service;
         this.trainRepository = trainRepository;
@@ -39,6 +43,7 @@ public class CongestionController {
         if (pnr == null || pnr.length() > 20 || !pnr.matches("[A-Za-z0-9]+")) {
             return ResponseEntity.badRequest().body(ApiError.of("INVALID_REQUEST", "The request parameters are invalid.", 400));
         }
+        if (!pnrLookupEnabled) return ResponseEntity.notFound().build();
         CongestionResponse response = service.getStatusByPnr(pnr.trim());
         return response == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(response);
     }

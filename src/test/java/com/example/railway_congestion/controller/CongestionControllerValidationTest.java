@@ -54,4 +54,11 @@ class CongestionControllerValidationTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("INVALID_REQUEST"));
     }
+
+    @Test
+    void hidesPnrLookupWhenDisabled() throws Exception {
+        mockMvc.perform(get("/api/pnr/12345678"))
+                .andExpect(status().isNotFound());
+        verify(service, never()).getStatusByPnr(anyString());
+    }
 }

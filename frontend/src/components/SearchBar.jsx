@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { getApiErrorMessage, getStations } from '../services/api';
 import { getLocalDateString } from '../utils/date';
 
+const pnrLookupEnabled = import.meta.env.DEV || import.meta.env.VITE_PNR_LOOKUP_ENABLED === 'true';
+
 const SearchBar = ({ onSearchPnr, onSearchStation, loading }) => {
   const [pnr, setPnr] = useState('');
   const [stationId, setStationId] = useState('');
   const [date, setDate] = useState(getLocalDateString);
   const [stations, setStations] = useState([]);
-  const [activeTab, setActiveTab] = useState('pnr');
+  const [activeTab, setActiveTab] = useState(pnrLookupEnabled ? 'pnr' : 'station');
   const [stationsLoading, setStationsLoading] = useState(true);
   const [stationsError, setStationsError] = useState(null);
 
@@ -24,10 +26,10 @@ const SearchBar = ({ onSearchPnr, onSearchStation, loading }) => {
   return (
     <div className="search-card">
       <div className="search-tabs" role="tablist" aria-label="Search type">
-        <button className={activeTab === 'pnr' ? 'active' : ''} type="button" role="tab" aria-selected={activeTab === 'pnr'} aria-controls="pnr-panel" onClick={() => setActiveTab('pnr')}>PNR lookup <span>01</span></button>
+        {pnrLookupEnabled && <button className={activeTab === 'pnr' ? 'active' : ''} type="button" role="tab" aria-selected={activeTab === 'pnr'} aria-controls="pnr-panel" onClick={() => setActiveTab('pnr')}>PNR lookup <span>01</span></button>}
         <button className={activeTab === 'station' ? 'active' : ''} type="button" role="tab" aria-selected={activeTab === 'station'} aria-controls="station-panel" onClick={() => setActiveTab('station')}>Station pulse <span>02</span></button>
       </div>
-      {activeTab === 'pnr' ? (
+      {activeTab === 'pnr' && pnrLookupEnabled ? (
         <form id="pnr-panel" className="search-form" role="tabpanel" onSubmit={(event) => { event.preventDefault(); if (pnr.trim()) onSearchPnr(pnr.trim()); }}>
           <label htmlFor="pnr-input">PNR number <span>8–20 characters</span></label>
           <div className="form-row"><input id="pnr-input" name="pnr" type="text" inputMode="numeric" autoComplete="off" spellCheck="false" maxLength="20" value={pnr} onChange={(event) => setPnr(event.target.value)} placeholder="e.g. 12345678…" required /><button className="primary-button" type="submit" disabled={loading || !pnr.trim()}>{loading ? 'Searching…' : 'Search PNR'} <span aria-hidden="true">↗</span></button></div>

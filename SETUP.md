@@ -21,14 +21,7 @@ Welcome to the **RailWatch** setup guide! This document explains how to set up, 
    ```
    *Alternatively, just copy the entire contents of `railway_congestion.sql` and run it.*
 
-3. Ensure your `application.properties` credentials match your local MySQL server:
-   *(File: `src/main/resources/application.properties`)*
-   ```properties
-   spring.datasource.url=jdbc:mysql://localhost:3306/railway_congestion
-   spring.datasource.username=your_mysql_username
-   spring.datasource.password=your_mysql_password
-   ```
-   *Update `username` and `password` if yours are different!*
+3. Configure `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD` in your local shell or secret manager. Do not put database credentials in `application.properties`, frontend variables, or committed files. `.env` files are Git-ignored for local convenience; production secrets belong in the hosting provider's secret-variable settings.
 
 ### Production-safe configuration
 
@@ -37,8 +30,11 @@ The backend accepts database settings through environment variables rather than 
 - `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD`
 - `CORS_ALLOWED_ORIGINS`: comma-separated exact frontend origins; wildcard (`*`) is rejected
 - `DEMO_ENABLED`: defaults to `false`; demo endpoints also require the Spring `demo` profile
+- `PNR_LOOKUP_ENABLED`: defaults to `false`; keep disabled until authentication and authorization protect real passenger records
 
-Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns an `X-Request-Id` correlation header, and unexpected server errors are logged server-side with a sanitized response.
+The backend has no default root or blank database password. Only `GET` and preflight `OPTIONS` requests are enabled by CORS; CORS is not authentication. The API returns an `X-Request-Id` correlation header, and unexpected server errors are logged server-side with a sanitized response.
+
+For the Railway API/MySQL and Vercel frontend deployment steps, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
@@ -47,7 +43,7 @@ Only `GET` and preflight `OPTIONS` requests are enabled by CORS. The API returns
 1. Open a terminal in the root directory: `railway_congestion/`
 2. Run the application using the Maven wrapper:
    ```bash
-   ./mvnw spring-boot:run
+   bash mvnw spring-boot:run
    ```
    *(On Windows Command Prompt, use `mvnw.cmd spring-boot:run`)*
 
